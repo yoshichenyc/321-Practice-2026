@@ -1,0 +1,12 @@
+package frc.robot.subsystem.pivot;
+
+
+public class PivotConstants{
+    public static final int kPivotMotorID = 16;
+    public static final current kCurrentLimit = Amps.of(60);
+    public static final String kPivotCanvus = "CANIvore";
+    public static final String KPivotEncoderCanvus = "CANIvore";
+    public static final boolean kCurrentLimitEnable = true;
+    public static final boolean kInverted = true;
+
+}
