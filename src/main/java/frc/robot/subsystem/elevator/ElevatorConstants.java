@@ -18,6 +18,7 @@ public class ElevatorConstants {
     public static final boolean kSupplyLimitEnabled = true;
     public static final boolean kStatoLimitEnabled = true;
     public static final int kMotorID = 11;
+    public static final int kMotorID2 = 12;
     public static final InvertedValue kInversion = InvertedValue.Clockwise_Positive;
     public static final NeutralModeValue kNeutralMode = NeutralModeValue.Brake;
 }
