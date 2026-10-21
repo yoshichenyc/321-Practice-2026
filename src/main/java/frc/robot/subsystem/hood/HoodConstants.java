@@ -18,6 +18,8 @@ public class HoodConstants{
     public static final Angle kStartingAngle = Degrees.of(0);
     public static final double kFeedAngleDouble = kFeedAngle.in(Degrees); //Converts kFeedAngle degrees into a Double
     public static final double kFeedAngleRadians = kFeedAngle.in(Radians);
+    public static final Angle kToleranceAngle = Degrees.of(1.5);
+    public static final Angle kTargetAngle = Degrees.of(30);
     public static final double kGearRatio = 142.9;
     public static final Voltage kMaxVoltage = Volts.of(12);
     public static final Current kCurrent = Amps.of(40);
@@ -27,5 +29,6 @@ public class HoodConstants{
     public static final int kMotorID = 11;
     public static final InvertedValue kInversion = InvertedValue.Clockwise_Positive;
     public static final NeutralModeValue kNeutralMode = NeutralModeValue.Brake;
+
 
 }
