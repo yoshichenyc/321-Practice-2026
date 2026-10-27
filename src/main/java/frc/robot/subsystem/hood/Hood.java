@@ -1,6 +1,9 @@
 package frc.robot.subsystem.hood;
 
 import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.DegreesPerSecondPerSecond;
+import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
@@ -9,50 +12,98 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Hood {
+    TalonFX hoodMotor = new TalonFX(HoodConstants.kHoodMotorID);    
+
     public Hood() {
         configureMotors();
     }
 
-
-    TalonFX hoodMotor = new TalonFX(HoodConstants.kMotorID);
-    
-    final CurrentLimitsConfigs currentLimitsConfigs = 
-            new CurrentLimitsConfigs()
+    final CurrentLimitsConfigs currentLimits =
+        new CurrentLimitsConfigs()
             .withSupplyCurrentLimit(HoodConstants.kSupplyCurrentLimit)
             .withSupplyCurrentLimitEnable(HoodConstants.kSupplyLimitEnabled)
-            .withStatorCurrentLimit(HoodConstants.kSupplyCurrentLimit)
-            .withStatorCurrentLimitEnable(HoodConstants.kSupplyLimitEnabled);
+            .withStatorCurrentLimit(HoodConstants.kStatorCurrentLimit)
+            .withStatorCurrentLimitEnable(HoodConstants.kStatorLimitEnabled);
 
-    final MotorOutputConfigs motoroutputConfigs = 
-            new MotorOutputConfigs()
+    final MotorOutputConfigs motorOutputs =
+        new MotorOutputConfigs()
             .withInverted(HoodConstants.kInversion)
             .withNeutralMode(HoodConstants.kNeutralMode);
 
-    final FeedbackConfigs feedbackConfigs =
-            new FeedbackConfigs()
-            .withSensorToMechanismRatio(HoodConstants.kGearRatio);
+    final FeedbackConfigs feedback =
+        new FeedbackConfigs()
+            .withSensorToMechanismRatio(HoodConstants.kHoodGearRatio);
 
-    final TalonFXConfiguration motorConfigs =
-            new TalonFXConfiguration()
-            .withCurrentLimits(currentLimitsConfigs)
-            .withMotorOutput(motoroutputConfigs)
-            .withFeedback(feedbackConfigs);
-            
-    private void configureMotors(){
-        hoodMotor.getConfigurator().apply(motorConfigs);
+    final TalonFXConfiguration hoodMotorConfigurations =
+        new TalonFXConfiguration()
+            .withCurrentLimits(currentLimits)
+            .withMotorOutput(motorOutputs)
+            .withFeedback(feedback);
+
+    private void configureMotors() {
+        hoodMotor.getConfigurator().apply(hoodMotorConfigurations);
     }
+    private double kP = 0;
+    private double kI = 0;
+    private double kD = 0;
+    public double kV = 0;
+    public double kS = 0;
+    public double kG = 0;
+
+    private TrapezoidProfile.Constraints hoodConstraints = 
+        new TrapezoidProfile.Constraints(
+            HoodConstants.kMaxVelocity.in(DegreesPerSecond), 
+            HoodConstants.kMaxAcceleration.in(DegreesPerSecondPerSecond));
+
+    private ProfiledPIDController hoodController = new ProfiledPIDController(kP, kI, kD, hoodConstraints);
+
+    public Angle currentAngle = Degrees.of(30);
+    public Angle targetAngle = Degrees.of(45);
+    private Voltage desiredVoltage = Volts.of(hoodController.calculate(currentAngle.in(Degrees), targetAngle.in(Degrees)));
+
+    public void goToAngle(Angle targetAngle) {
+        Voltage desiredVoltage = Volts.of(hoodController.calculate(getAngle().in(Degrees), targetAngle.in(Degrees))); 
+        hoodMotor.setVoltage(desiredVoltage.in(Volts));
+    }  
+    
+    private ArmFeedforward hoodFeedFoward = new ArmFeedforward (kV, kS, kG);
+
     @Logged(name = "hoodPitch")
     public Angle getAngle() {
         Angle angle = hoodMotor.getPosition().getValue();
         return angle;
- }  
-    @Logged(name = "atTargetAngle")
-    public boolean atTargetAngle() {
-       boolean atTargetAngle = Math.abs(getAngle().in(Degrees) - HoodConstants.kTargetAngle.in(Degrees)) < HoodConstants.kToleranceAngle.in(Degrees);
-        return atTargetAngle;
-        }
+    }
 
+    @Logged(name = "hoodAtTargetAngle")
+    public boolean atTargetAngle() {
+        boolean atTargetAngle = Math.abs(getAngle().in(Degrees) - HoodConstants.kTargetAngle.in(Degrees)) < HoodConstants.kToleranceAngle.in(Degrees);
+        return atTargetAngle;
+    }
+
+    @Logged(name = "hoodVoltage")
+    public Voltage getVoltage() {
+        Voltage voltage = hoodMotor.getMotorVoltage().getValue();
+        return voltage;
+    }
+
+    @Logged(name = "hoodStatorCurrent")
+    public Current getCurrent() {
+        Current statorCurrent = hoodMotor.getStatorCurrent().getValue();
+        return statorCurrent;
+    }
+
+    // @Override
+    public void periodic() {
+        SmartDashboard.putNumber("Hood Angle", hoodMotor.getPosition().getValue().in(Degrees));
+    }
 }
