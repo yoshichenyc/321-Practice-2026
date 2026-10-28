@@ -71,12 +71,20 @@ public class Hood {
     public Angle targetAngle = Degrees.of(45);
     private Voltage desiredVoltage = Volts.of(hoodController.calculate(currentAngle.in(Degrees), targetAngle.in(Degrees)));
 
-    public void goToAngle(Angle targetAngle) {
-        Voltage desiredVoltage = Volts.of(hoodController.calculate(getAngle().in(Degrees), targetAngle.in(Degrees))); 
-        hoodMotor.setVoltage(desiredVoltage.in(Volts));
-    }  
+    /*public void goToAngle(Angle targetAngle) {
+      Voltage desiredVoltage = Volts.of(hoodController.calculate(getAngle().in(Degrees), targetAngle.in(Degrees))); 
+        hoodMotor.setVoltage(desiredVoltage.in(Volts)); 
+    }  */
     
-    private ArmFeedforward hoodFeedFoward = new ArmFeedforward (kV, kS, kG);
+    private ArmFeedforward hoodFeedForward = new ArmFeedforward (kV, kS, kG);
+    
+
+    private void goToAngle (Angle targetAngle) {
+        Voltage calculatedPIDValue = Volts.of(hoodController.calculate(getAngle().in(Degrees), targetAngle.in(Degrees)));
+        Voltage calculatedFFVoltage = Volts.of(hoodFeedForward.calculate(targetAngle.in(Degrees), 0));
+        Voltage desiredVoltage = Volts.of(calculatedPIDValue.in(Volts) + calculatedFFVoltage.in(Volts));
+        hoodMotor.setVoltage(desiredVoltage.in(Volts));
+    }
 
     @Logged(name = "hoodPitch")
     public Angle getAngle() {

@@ -1,6 +1,11 @@
 package frc.robot.subsystem.pivot;
 
 import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.DegreesPerSecondPerSecond;
+import static edu.wpi.first.units.Units.Volts;
+
+import java.security.KeyPairGenerator;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
@@ -9,6 +14,9 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
@@ -46,6 +54,32 @@ public class Pivot {
     private void configureMotors() {
         pivotMotor.getConfigurator().apply(pivotMotorConfigurations);
     }
+    private double kP = 0;
+    private double kI = 0;
+    private double kD = 0;
+    public double kV = 0;
+    public double kS = 0;
+    public double kG = 0;
+
+    private TrapezoidProfile.Constraints pivotConstraints = 
+        new TrapezoidProfile.Constraints(
+            PivotConstants.kMaxVelocity.in(DegreesPerSecond),
+            PivotConstants.kMaxAcceleration.in(DegreesPerSecondPerSecond));
+
+    private ProfiledPIDController pivotController = new ProfiledPIDController(kP, kI, kD, pivotConstraints);
+
+    public Angle currentAngle = Degrees.of(30);
+    public Angle targetAngle = Degrees.of(45);
+    private Voltage desiredVoltage = Volts.of(pivotController.calculate(currentAngle.in(Degrees), targetAngle.in(Degrees)));
+
+    private ArmFeedforward pivotFeedForward = new ArmFeedforward(kV, kS, kG);
+
+    private void goToAngle(Angle targetAngle) {
+        Voltage calculatedPIDValue = Volts.of(pivotController.calculate(getAngle().in(Degrees), targetAngle.in(Degrees)));
+        Voltage calculatedFFVoltage = Volts.of(pivotFeedForward.calculate(targetAngle.in(Degrees), 0));
+        Voltage desiredVoltage = Volts.of(calculatedPIDValue.in(Volts) + calculatedFFVoltage.in(Volts));
+        pivotMotor.setVoltage(desiredVoltage.in(Volts));
+    }
 
     @Logged(name = "pivotPitch")
     public Angle getAngle() {
@@ -59,7 +93,7 @@ public class Pivot {
         return atTargetAngle;
     }
 
-    @Logged(name = "pivtoVoltage")
+    @Logged(name = "pivotVoltage")
     public Voltage getVoltage() {
         Voltage voltage = pivotMotor.getMotorVoltage().getValue();
         return voltage;
