@@ -2,37 +2,41 @@ package frc.robot.subsystem.hood.hoodCommands;
 
 import static edu.wpi.first.units.Units.Volts;
 
+import java.util.function.Supplier;
+
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystem.hood.Hood;
 import frc.robot.subsystem.hood.HoodConstants;
 
-public class HomeHoodCommand extends Command{
-    
+public class RunAtVelocity extends Command{
     Hood hood;
-    
-    public void homeHood (Hood hood) {
+    Supplier<Voltage> voltage;
+
+    public RunAtVelocity(Hood hood, Supplier<Voltage> voltage) {
         this.hood = hood;
+        this.voltage = voltage;
         addRequirements(hood);
     }
 
-    @Override 
+    @Override
     public void initialize() {
 
     }
 
-    @Override 
+    @Override
     public void execute() {
         hood.setVoltage(HoodConstants.kHomingVoltage);
     }
 
-    @Override 
+    @Override
     public boolean isFinished() {
-        return hood.atHomedPosition();
+       return hood.atHomedPosition();
     }
 
-    @Override 
+    @Override
     public void end(boolean interrupted) {
-        // hood.zeroEncoder();
+       // hood.zeroEncoder();
         hood.setVoltage(Volts.of(0));
     }
 }
